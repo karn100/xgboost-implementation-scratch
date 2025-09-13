@@ -1,7 +1,7 @@
 import numpy as np
 
 class BoostingTreeNode:
-    def __init__(self,grad,hess,lam,depth = 0,max_depth = 3,gamma = 0.0):
+    def __init__(self,grad,hess,lam,depth = 0,max_depth = 3,gamma = 0.0,feature_map = None):
         self.feature_index = None
         self.threshold = None
         self.left = None
@@ -15,6 +15,7 @@ class BoostingTreeNode:
         self.depth = depth
         self.gamma = gamma
         self.max_depth = max_depth
+        self._feature_map = feature_map
     
     def calc_leaf_value(self):
         G = np.sum(self.grad)
@@ -22,7 +23,7 @@ class BoostingTreeNode:
         return -G/(H + self.lam)
     
     def calc_leaf_gain(self,G,H,GL,GR,HL,HR):
-        gain = 0.5*((GL**2/(HL + self.lam)) + (GR**2/(HR + self.lam)) - (G/H + self.lam)) - self.gamma
+        gain = 0.5*((GL**2/(HL + self.lam)) + (GR**2/(HR + self.lam)) - (G**2/(H + self.lam))) - self.gamma
         return gain
     
     def best_split(self,X):
@@ -34,10 +35,11 @@ class BoostingTreeNode:
         best_threshold = None
 
         for feature in range(n_features):
+            true_feature = self._feature_map[feature] if self._feature_map is not None else feature
             thresholds = np.unique(X[:,feature])
             for threshold in thresholds:
                 left_idx = X[:,feature] <= threshold
-                right_idx =~ left_idx
+                right_idx = X[:,feature] > threshold
 
                 if left_idx.sum() == 0 or right_idx.sum() == 0:
                     continue
@@ -54,18 +56,18 @@ class BoostingTreeNode:
     
     def build(self,X):
         if self.depth >= self.max_depth:
-            self.value = True
+            self.is_leaf = True
             self.value = self.calc_leaf_value()
             return
         best_feature,best_threshold,best_gain = self.best_split(X)
 
-        if best_gain <= 0 or best_feature == 0:
-            self.value = True
+        if best_gain <= 0 or best_feature is None:
+            self.is_leaf = True
             self.value = self.calc_leaf_value()
             return
         
         left_idx = X[:,best_feature] <= best_threshold
-        right_idx =~ left_idx
+        right_idx = X[:,best_feature] > best_threshold
 
         self.feature_index = best_feature
         self.threshold = best_threshold
@@ -93,7 +95,10 @@ class BoostingTreeNode:
     def pred_row(self,x):
         if self.is_leaf:
             return self.value
-        if x[self.feature_index] <= self.threshold:
+        feature = self.feature_index
+        
+        true_feature = self._feature_map[self.feature_index] if self._feature_map is not None else self.feature_index
+        if x[true_feature] <= self.threshold:
             return self.left.pred_row(x)
         else:
             return self.right.pred_row(x)
@@ -109,6 +114,10 @@ class XGBoostTree:
     
     def fit(self,X,grad,hess):
 
+        if self.feature_indices is None:
+            self.feature_indices = np.arange(X.shape)
+            feature_map = {i:f for i,f in enumerate(self.feature_indices)}
+
         self.root = BoostingTreeNode(
             grad=grad,
             hess=hess,
@@ -118,6 +127,7 @@ class XGBoostTree:
             gamma= self.gamma
         )
         self.root.build(X)
+        
     
     def predict(self,X):
         preds = np.array([self.root.pred_row(x) for x in X])

@@ -37,14 +37,14 @@ class XGBoostScratch:
             p = np.mean(y)
             self.initial_pred = np.log(p/(1 - p + 1e-15))
         
-        y_pred = np.full(n_samples,self.initial_pred(y))
+        y_pred = np.full(n_samples,self.initial_pred)
 
         for m in range(self.n_estimators):
 
             grad = self.loss_fn.grad(y,y_pred)
             hess = self.loss_fn.hess(y,y_pred)    
 
-            col_idx = np.random.choice(n_features,max(1,n_features*self.colsample))
+            col_idx = np.random.choice(n_features,max(1,int(n_features*self.colsample)),replace=False)
             X_sub = X[:,col_idx]
 
             tree = XGBoostTree(
@@ -55,12 +55,13 @@ class XGBoostScratch:
                 feature_indices=col_idx
             )
             tree.fit(X_sub,grad,hess)
+            tree.feature_indices = col_idx
             update = tree.predict(X_sub)
 
             y_pred += self.learning_rate*update
             self.trees.append(tree)
             self.train_loss.append(self.loss_fn.loss(y,y_pred))
-            print(f"Interation: {m+1}/{self.n_estimators}, Loss: {self.train_loss[-1]:.5f}")
+            print(f"Iteration: {m+1}/{self.n_estimators}, Loss: {self.train_loss[-1]:.5f}")
     
     def predict(self,X):
         n_samples = X.shape[0]
@@ -71,5 +72,6 @@ class XGBoostScratch:
             X_sub = X[:,tree.feature_indices]
             y_pred += self.learning_rate*tree.predict(X_sub)
 
-            return self.loss_fn.transform(y_pred)
+        return self.loss_fn.transform(y_pred)
+    
         
