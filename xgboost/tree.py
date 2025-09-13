@@ -35,7 +35,7 @@ class BoostingTreeNode:
         best_threshold = None
 
         for feature in range(n_features):
-            true_feature = self._feature_map[feature] if self._feature_map is not None else feature
+            # true_feature = self._feature_map[feature] if self._feature_map is not None else feature
             thresholds = np.unique(X[:,feature])
             for threshold in thresholds:
                 left_idx = X[:,feature] <= threshold
@@ -97,8 +97,9 @@ class BoostingTreeNode:
             return self.value
         feature = self.feature_index
         
-        true_feature = self._feature_map[self.feature_index] if self._feature_map is not None else self.feature_index
-        if x[true_feature] <= self.threshold:
+        # true_feature = self._feature_map[self.feature_index] if self._feature_map is not None else self.feature_index
+        # if x[true_feature] <= self.threshold:
+        if x[self.feature_index] <= self.threshold:
             return self.left.pred_row(x)
         else:
             return self.right.pred_row(x)
