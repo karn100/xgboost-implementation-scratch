@@ -95,7 +95,6 @@ class BoostingTreeNode:
     def pred_row(self,x):
         if self.is_leaf:
             return self.value
-        feature = self.feature_index
         
         # true_feature = self._feature_map[self.feature_index] if self._feature_map is not None else self.feature_index
         # if x[true_feature] <= self.threshold:
@@ -117,7 +116,7 @@ class XGBoostTree:
 
         if self.feature_indices is None:
             self.feature_indices = np.arange(X.shape)
-            feature_map = {i:f for i,f in enumerate(self.feature_indices)}
+            # feature_map = {i:f for i,f in enumerate(self.feature_indices)}
 
         self.root = BoostingTreeNode(
             grad=grad,

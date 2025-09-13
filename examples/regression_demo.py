@@ -11,7 +11,7 @@ X,y = make_regression(
     random_state=42
 )
 model = XGBoostScratch(
-    n_estimators=50,
+    n_estimators=100,
     learning_rate=0.1,
     max_depth=3,
     lam = 1.0,
